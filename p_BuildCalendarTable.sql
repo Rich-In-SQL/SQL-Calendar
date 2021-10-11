@@ -34,11 +34,13 @@ BEGIN
         [Year] int NOT NULL,
         [Quarter] int NOT NULL,
         [Month] int NOT NULL,
-        [MonthName] varchar(20),
+		[MonthStartDate] DATETIME,
+		[MonthEndDate] DATETIME,
         [Week] int NOT NULL,
         [WeekOfMonth] int NULL,
+		[WeekStartDate] DATETIME,
+		[WeekEndDate] DATETIME,
         [Day] int NOT NULL,
-        [DayOfWeekName] varchar(20),
         [DayOfYear] int NOT NULL,
         [Weekday] int NOT NULL,
         [IsWorkingDay] [BIT],
@@ -386,12 +388,14 @@ BEGIN
         FROM [Ref].[Calendar] d
 
         INNER JOIN NewYear n ON d.Date = n.Date
-
-
+		
 		UPDATE Ref.Calendar 
 		SET 
-		[DayOfWeekName] = DATENAME(dw,Date),
-		[MonthName] = DATENAME(MM,Date)
-
+		[DayOfWeekName] = DATENAME(dw,[Date]),
+		[MonthName] = DATENAME(MM,[Date]),
+		[MonthStartDate] = DATEADD(month, DATEDIFF(month, 0, [Date]), 0),
+		[MonthEndDate] = DATEADD(month, ((YEAR([Date]) - 1900) * 12) + MONTH([Date]), -1),
+		[WeekStartDate] = DATEADD(dd, -(DATEPART(dw, [Date])-1), [Date]),
+		[WeekEndDate] = DATEADD(dd, 7-(DATEPART(dw, [Date])), [Date])
 
 END
