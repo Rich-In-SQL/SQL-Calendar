@@ -1,4 +1,4 @@
-CREATE PROCEDURE p_BuildCalendarTable
+CREATE PROCEDURE [dbo].[p_BuildCalendarTable]
 
 @StartDate varchar(4),
 @EndDate varchar(4)
@@ -34,9 +34,11 @@ BEGIN
         [Year] int NOT NULL,
         [Quarter] int NOT NULL,
         [Month] int NOT NULL,
+        [MonthName] varchar(20),
         [Week] int NOT NULL,
         [WeekOfMonth] int NULL,
         [Day] int NOT NULL,
+        [DayOfWeekName] varchar(20),
         [DayOfYear] int NOT NULL,
         [Weekday] int NOT NULL,
         [IsWorkingDay] [BIT],
@@ -384,6 +386,12 @@ BEGIN
         FROM [Ref].[Calendar] d
 
         INNER JOIN NewYear n ON d.Date = n.Date
+
+
+		UPDATE Ref.Calendar 
+		SET 
+		[DayOfWeekName] = DATENAME(dw,Date),
+		[MonthName] = DATENAME(MM,Date)
 
 
 END
