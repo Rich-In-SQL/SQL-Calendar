@@ -1,11 +1,4 @@
-USE [DBA_Tools]
-GO
-/****** Object:  StoredProcedure [Auxilary].[p_BuildCalendarTable]    Script Date: 09/01/2022 16:01:23 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-ALTER PROCEDURE [Auxilary].[p_BuildCalendarTable]
+CREATE PROCEDURE [Auxilary].[p_BuildCalendarTable]
 
 @StartDate varchar(4),
 @EndDate varchar(4)
