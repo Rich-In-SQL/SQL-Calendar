@@ -1,4 +1,11 @@
-CREATE PROCEDURE [dbo].[p_BuildCalendarTable]
+USE [DBA_Tools]
+GO
+/****** Object:  StoredProcedure [Auxilary].[p_BuildCalendarTable]    Script Date: 09/01/2022 16:01:23 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [Auxilary].[p_BuildCalendarTable]
 
 @StartDate varchar(4),
 @EndDate varchar(4)
@@ -11,29 +18,30 @@ BEGIN
 
     IF (NOT EXISTS (SELECT * 
                  FROM INFORMATION_SCHEMA.SCHEMATA 
-                 WHERE SCHEMA_NAME = 'Ref'))
+                 WHERE SCHEMA_NAME = 'Auxilary'))
 
     BEGIN
 		
 		SET @SQL = NULL
-        SET @SQL = 'CREATE SCHEMA Ref'
+        SET @SQL = 'CREATE SCHEMA Auxilary'
 		EXEC sp_executesql @SQL
 
     END
 
     IF (NOT EXISTS (SELECT * 
                     FROM INFORMATION_SCHEMA.TABLES 
-                    WHERE TABLE_SCHEMA = 'Ref' 
+                    WHERE TABLE_SCHEMA = 'Auxilary' 
                     AND  TABLE_NAME = 'Calendar'))
 
     BEGIN
 
-        CREATE TABLE [Ref].[Calendar] 
+        CREATE TABLE [Auxilary].[Calendar] 
         (
         [Date] datetime NOT NULL,
         [Year] int NOT NULL,
         [Quarter] int NOT NULL,
         [Month] int NOT NULL,
+		[MonthName] varchar(10),
 		[MonthStartDate] DATETIME,
 		[MonthEndDate] DATETIME,
         [Week] int NOT NULL,
@@ -41,6 +49,7 @@ BEGIN
 		[WeekStartDate] DATETIME,
 		[WeekEndDate] DATETIME,
         [Day] int NOT NULL,
+		[DayOfWeekName] varchar(10),
         [DayOfYear] int NOT NULL,
         [Weekday] int NOT NULL,
         [IsWorkingDay] [BIT],
@@ -51,7 +60,7 @@ BEGIN
         PRIMARY KEY CLUSTERED ([Date])
         );
 
-        ALTER TABLE [Ref].[Calendar]
+        ALTER TABLE [Auxilary].[Calendar]
 
         ADD CONSTRAINT [Calendar_ck] CHECK (  ([Year] > 1900)
         AND ([Quarter] BETWEEN 1 AND 4)
@@ -70,7 +79,7 @@ BEGIN
 
     BEGIN
 
-        TRUNCATE TABLE [Ref].[Calendar]
+        TRUNCATE TABLE [Auxilary].[Calendar]
 
     END 
 
@@ -82,7 +91,7 @@ BEGIN
 
 			SET @SQL = NULL
 			SET @SQL = 
-            'CREATE FUNCTION Ref.Computus
+            'CREATE FUNCTION Auxilary.Computus
             
             (
                 @Y INT -- The year we are calculating easter sunday for
@@ -103,7 +112,6 @@ BEGIN
                     @k INT,
                     @L INT,
                     @m INT
-
                 SET @a = @Y % 19
                 SET @b = @Y / 100
                 SET @c = @Y % 100
@@ -116,9 +124,7 @@ BEGIN
                 SET @k = @c % 4
                 SET @L = (32 + 2 * @e + 2 * @i - @h - @k) % 7
                 SET @m = (@a + 11 * @h + 22 * @L) / 451
-
                 RETURN(DATEADD(month, ((@h + @L - 7 * @m + 114) / 31)-1, cast(cast(@Y AS VARCHAR) AS Datetime)) + ((@h + @L - 7 * @m + 114) % 31))
-
             END'
 
 			EXEC sp_executesql @SQL
@@ -132,7 +138,7 @@ BEGIN
 
 			SET @SQL = NULL
 			SET @SQL =
-            'CREATE FUNCTION Ref.Numbers
+            'CREATE FUNCTION Auxilary.Numbers
             (
                 @AFrom INT,
                 @ATo INT,
@@ -144,7 +150,6 @@ BEGIN
             )
             AS
             BEGIN
-
                 WITH Numbers(n)
                 AS
                 (
@@ -158,16 +163,13 @@ BEGIN
                     WHERE
                         n < @ATo
                 )
-
                 INSERT @RetNumbers
                 SELECT 
                     n 
                 FROM 
                     Numbers
                 OPTION(MAXRECURSION 0)
-
                 RETURN;
-
             END'
 
 			EXEC sp_executesql @SQL
@@ -181,7 +183,7 @@ BEGIN
 
 			SET @SQL = NULL
 			SET @SQL = 
-            'CREATE FUNCTION Ref.iNumbers
+            'CREATE FUNCTION Auxilary.iNumbers
             (
                 @AFrom INT,
                 @ATo INT,
@@ -265,7 +267,7 @@ BEGIN
         WHERE 
             DATEPART(weekday,Date) = 4
         )
-        INSERT INTO Ref.Calendar (Date,Year,Quarter,Month,Week,Day,DayOfYear,Weekday,Fiscal_Year,Fiscal_Quarter,Fiscal_Month,IsHoliday,IsWorkingDay,WeekOfMonth)
+        INSERT INTO Auxilary.Calendar (Date,Year,Quarter,Month,Week,Day,DayOfYear,Weekday,Fiscal_Year,Fiscal_Quarter,Fiscal_Month,IsHoliday,IsWorkingDay,WeekOfMonth)
         SELECT
             d.Date,
             YEAR(d.Date) AS Year,
@@ -281,8 +283,8 @@ BEGIN
             CASE
             -- http://en.wikipedia.org/wiki/List_of_holidays_by_country
                 WHEN (DATEPART(DayOfYear, d.Date) = 1) -- New Year's Day
-                OR (d.Date = Ref.Computus(YEAR(Date))-2)  -- Good Friday
-                OR (d.Date = Ref.Computus(YEAR(Date)))    -- Easter Sunday
+                OR (d.Date = Auxilary.Computus(YEAR(Date))-2)  -- Good Friday
+                OR (d.Date = Auxilary.Computus(YEAR(Date)))    -- Easter Sunday
                 OR (MONTH(d.Date) = 12 AND DAY(d.Date) = 25) -- Cristmas day
                 OR (MONTH(d.Date) = 12 AND DAY(d.Date) = 26) -- Boxing day
                 THEN 1
@@ -320,7 +322,7 @@ BEGIN
                 Weekday
 
             FROM 
-                [Ref].[Calendar]
+                [Auxilary].[Calendar]
 
             WHERE 
                 Month = 12
@@ -332,7 +334,7 @@ BEGIN
 
         SET ISHoliday = 1
 
-        FROM [Ref].[Calendar] d
+        FROM [Auxilary].[Calendar] d
 
         INNER JOIN Christmas C ON d.Date = C.Date
 
@@ -346,7 +348,7 @@ BEGIN
             Weekday
 
         FROM 
-            [Ref].[Calendar]
+            [Auxilary].[Calendar]
 
         WHERE 
             Month = 12
@@ -359,7 +361,7 @@ BEGIN
 
         SET ISHoliday = 1
 
-        FROM [Ref].[Calendar] d
+        FROM [Auxilary].[Calendar] d
 
         INNER JOIN BoxingDay B ON d.Date = B.Date
 
@@ -372,7 +374,7 @@ BEGIN
             Weekday
 
         FROM 
-            [Ref].[Calendar]
+            [Auxilary].[Calendar]
 
         WHERE 
             Month = 1
@@ -385,11 +387,11 @@ BEGIN
 
         SET ISHoliday = 1
 
-        FROM [Ref].[Calendar] d
+        FROM [Auxilary].[Calendar] d
 
         INNER JOIN NewYear n ON d.Date = n.Date
 		
-		UPDATE Ref.Calendar 
+		UPDATE Auxilary.Calendar 
 		SET 
 		[DayOfWeekName] = DATENAME(dw,[Date]),
 		[MonthName] = DATENAME(MM,[Date]),
@@ -397,5 +399,6 @@ BEGIN
 		[MonthEndDate] = DATEADD(month, ((YEAR([Date]) - 1900) * 12) + MONTH([Date]), -1),
 		[WeekStartDate] = DATEADD(dd, -(DATEPART(dw, [Date])-1), [Date]),
 		[WeekEndDate] = DATEADD(dd, 7-(DATEPART(dw, [Date])), [Date])
+
 
 END
